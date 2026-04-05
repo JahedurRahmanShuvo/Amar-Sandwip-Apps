@@ -1,0 +1,183 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "mobileNumber": { "type": "string" },
+        "union": { "type": "string" },
+        "upazila": { "type": "string", "description": "Permanently set to Sandwip" },
+        "district": { "type": "string", "description": "Permanently set to Chittagong" },
+        "role": { "type": "string", "enum": ["user", "admin"] },
+        "isOnline": { "type": "boolean" },
+        "lastActive": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "displayName", "role"]
+    },
+    "BloodDonor": {
+      "title": "Blood Donor",
+      "description": "Blood donor registration info",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "bloodGroup": { "type": "string" },
+        "mobileNumber": { "type": "string" },
+        "union": { "type": "string" },
+        "isApproved": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "name", "bloodGroup", "mobileNumber", "isApproved"]
+    },
+    "Professional": {
+      "title": "Professional Directory",
+      "description": "Professional directory info",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "profession": { "type": "string" },
+        "mobileNumber": { "type": "string" },
+        "union": { "type": "string" },
+        "description": { "type": "string" },
+        "isApproved": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "name", "profession", "mobileNumber", "isApproved"]
+    },
+    "GalleryItem": {
+      "title": "Sandwip Gallery Item",
+      "description": "Gallery images submitted by users",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "caption": { "type": "string" },
+        "isApproved": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "imageUrl", "isApproved"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "System notifications for users",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "message", "createdAt"]
+    },
+    "Announcement": {
+      "title": "Pop-up Announcement",
+      "description": "Pop-up announcements sent by admin",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "isActive": { "type": "boolean" }
+      },
+      "required": ["title", "message", "createdAt", "isActive"]
+    },
+    "Transport": {
+      "title": "Transport Schedule",
+      "description": "Ship/Boat schedules and prices",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "route": { "type": "string", "enum": ["Kumira-Guptachhara", "Guptachhara-Sitakunda"] },
+        "time": { "type": "string" },
+        "price": { "type": "number" },
+        "status": { "type": "string" }
+      },
+      "required": ["name", "route", "time", "price"]
+    },
+    "EmergencyService": {
+      "title": "Emergency Service",
+      "description": "Contact info for emergency services",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "contactNumber": { "type": "string" },
+        "location": { "type": "string" },
+        "officerName": { "type": "string" }
+      },
+      "required": ["name", "category", "contactNumber"]
+    },
+    "MarketPrice": {
+      "title": "Market Price",
+      "description": "Daily market prices for products",
+      "type": "object",
+      "properties": {
+        "productName": { "type": "string" },
+        "priceRange": { "type": "string" },
+        "unit": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["productName", "priceRange", "unit", "updatedAt"]
+    },
+    "JobCircular": {
+      "title": "Job Circular",
+      "description": "Recruitment notices",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "company": { "type": "string" },
+        "description": { "type": "string" },
+        "deadline": { "type": "string" },
+        "postedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "company", "postedAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "transports/{transportId}": {
+      "schema": "Transport",
+      "description": "Transport schedules"
+    },
+    "emergencyServices/{serviceId}": {
+      "schema": "EmergencyService",
+      "description": "Emergency service contacts"
+    },
+    "marketPrices/{priceId}": {
+      "schema": "MarketPrice",
+      "description": "Daily market prices"
+    },
+    "jobCirculars/{jobId}": {
+      "schema": "JobCircular",
+      "description": "Job recruitment notices"
+    },
+    "bloodDonors/{donorId}": {
+      "schema": "BloodDonor",
+      "description": "Blood donor registrations"
+    },
+    "professionals/{profId}": {
+      "schema": "Professional",
+      "description": "Professional directory entries"
+    },
+    "galleryItems/{itemId}": {
+      "schema": "GalleryItem",
+      "description": "Sandwip gallery items"
+    },
+    "notifications/{notifId}": {
+      "schema": "Notification",
+      "description": "System notifications"
+    },
+    "announcements/{annId}": {
+      "schema": "Announcement",
+      "description": "Pop-up announcements"
+    }
+  }
+}
