@@ -208,6 +208,24 @@ const BottomNav = () => {
   );
 };
 
+const BannedScreen = () => {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-red-50 text-center">
+      <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-6">
+        <AlertTriangle className="w-10 h-10 text-red-600" />
+      </div>
+      <h1 className="text-2xl font-bold text-gray-900 mb-2">আপনার অ্যাকাউন্টটি সাময়িকভাবে স্থগিত করা হয়েছে</h1>
+      <p className="text-gray-600 mb-8">নিয়ম লঙ্ঘনের কারণে আপনার অ্যাকাউন্টটি ব্যান করা হয়েছে। বিস্তারিত জানতে অ্যাডমিনের সাথে যোগাযোগ করুন।</p>
+      <button 
+        onClick={() => logout()}
+        className="px-8 py-3 bg-red-600 text-white font-bold rounded-xl shadow-lg"
+      >
+        লগ আউট করুন
+      </button>
+    </div>
+  );
+};
+
 // --- Screens ---
 
 const LoginScreen = () => {
@@ -1487,6 +1505,24 @@ const AdminUsers = () => {
     }
   };
 
+  const handleBan = async (userId: string, currentBanned: boolean) => {
+    try {
+      await updateDoc(doc(db, 'users', userId), { isBanned: !currentBanned });
+      setSelectedUser((prev: any) => prev ? { ...prev, isBanned: !currentBanned } : null);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `users/${userId}`);
+    }
+  };
+
+  const handleApprove = async (userId: string, currentVerified: boolean) => {
+    try {
+      await updateDoc(doc(db, 'users', userId), { isVerified: !currentVerified });
+      setSelectedUser((prev: any) => prev ? { ...prev, isVerified: !currentVerified } : null);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `users/${userId}`);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="bg-blue-600 p-4 rounded-2xl text-white shadow-lg flex justify-between items-center">
@@ -1550,72 +1586,120 @@ const AdminUsers = () => {
         {selectedUser && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white w-full max-w-sm rounded-[32px] overflow-hidden shadow-2xl"
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="bg-white w-full max-w-sm rounded-[40px] overflow-hidden shadow-2xl relative border border-gray-100"
             >
-              <div className="relative h-32 bg-blue-600">
-                <button 
-                  onClick={() => setSelectedUser(null)}
-                  className="absolute top-4 right-4 p-2 bg-white/20 hover:bg-white/30 rounded-full text-white transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
+              {/* Header/Banner */}
+              <div className="h-24 bg-gray-50 border-b border-gray-100" />
               
-              <div className="px-6 pb-8 -mt-16 text-center">
-                <div className="inline-block relative">
-                  <img 
-                    src={selectedUser.photoURL || `https://ui-avatars.com/api/?name=${selectedUser.displayName}&background=random`} 
-                    alt="" 
-                    className="w-32 h-32 rounded-full border-4 border-white shadow-lg object-cover bg-gray-100"
-                  />
-                  {selectedUser.isOnline && (
-                    <div className="absolute bottom-2 right-2 w-6 h-6 bg-green-500 rounded-full border-4 border-white" />
-                  )}
+              {/* Close Button */}
+              <button 
+                onClick={() => setSelectedUser(null)}
+                className="absolute top-4 right-4 p-2 bg-white/80 hover:bg-white rounded-full text-gray-400 shadow-sm transition-all z-10"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              
+              <div className="px-8 pb-8 -mt-12 text-center">
+                {/* Profile Picture */}
+                <div className="relative inline-block">
+                  <div className="w-28 h-28 rounded-full border-[6px] border-white shadow-xl overflow-hidden bg-white">
+                    <img 
+                      src={selectedUser.photoURL || `https://ui-avatars.com/api/?name=${selectedUser.displayName}&background=random`} 
+                      alt="" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  {/* Online Indicator */}
+                  <div className={cn(
+                    "absolute bottom-1 right-1 w-6 h-6 rounded-full border-4 border-white shadow-sm",
+                    selectedUser.isOnline ? "bg-[#28A745]" : "bg-gray-300"
+                  )} />
                 </div>
                 
-                <h2 className="mt-4 text-2xl font-bold text-gray-900">{selectedUser.displayName}</h2>
-                <p className="text-blue-600 font-medium text-sm mb-6 capitalize">{selectedUser.role}</p>
-                
-                <div className="space-y-4 text-left">
-                  <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl">
-                    <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
+                {/* User Info */}
+                <div className="mt-4 space-y-1">
+                  <h2 className="text-2xl font-bold text-black flex items-center justify-center gap-2">
+                    {selectedUser.displayName}
+                    {selectedUser.isVerified && (
+                      <div className="bg-blue-500 text-white p-0.5 rounded-full">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+                  </h2>
+                  <p className="text-gray-500 font-medium text-sm capitalize tracking-wide">
+                    {selectedUser.role === 'admin' ? 'অ্যাডমিন' : 'সাধারণ ইউজার'}
+                  </p>
+                </div>
+
+                {/* Details List */}
+                <div className="mt-8 space-y-3">
+                  <div className="flex items-center gap-4 p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
+                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-gray-400 shadow-sm">
                       <Phone className="w-5 h-5" />
                     </div>
-                    <div>
-                      <div className="text-[10px] text-gray-400 uppercase tracking-wider font-bold">মোবাইল নম্বর</div>
-                      <a href={`tel:${selectedUser.mobileNumber}`} className="text-gray-900 font-bold">{selectedUser.mobileNumber || 'প্রদান করা হয়নি'}</a>
+                    <div className="text-left">
+                      <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">মোবাইল নম্বর</div>
+                      <a href={`tel:${selectedUser.mobileNumber}`} className="text-gray-700 font-bold text-base">
+                        {selectedUser.mobileNumber || 'প্রদান করা হয়নি'}
+                      </a>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl">
-                    <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center text-green-600">
+                  <div className="flex items-center gap-4 p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
+                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-gray-400 shadow-sm">
                       <MapPin className="w-5 h-5" />
                     </div>
-                    <div>
-                      <div className="text-[10px] text-gray-400 uppercase tracking-wider font-bold">ইউনিয়ন (ঠিকানা)</div>
-                      <div className="text-gray-900 font-bold">{selectedUser.union || 'প্রদান করা হয়নি'}</div>
+                    <div className="text-left">
+                      <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">ইউনিয়ন (ঠিকানা)</div>
+                      <div className="text-gray-700 font-bold text-base">{selectedUser.union || 'প্রদান করা হয়নি'}</div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl">
-                    <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center text-purple-600">
+                  <div className="flex items-center gap-4 p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
+                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-gray-400 shadow-sm">
                       <Calendar className="w-5 h-5" />
                     </div>
-                    <div>
-                      <div className="text-[10px] text-gray-400 uppercase tracking-wider font-bold">সর্বশেষ সক্রিয়</div>
-                      <div className="text-gray-900 font-bold text-sm">
+                    <div className="text-left">
+                      <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">সর্বশেষ সক্রিয়</div>
+                      <div className="text-gray-700 font-bold text-sm">
                         {selectedUser.lastActive ? new Date(selectedUser.lastActive).toLocaleString('bn-BD') : 'অজানা'}
                       </div>
                     </div>
                   </div>
                 </div>
 
+                {/* Action Buttons */}
+                {selectedUser.role !== 'admin' && (
+                  <div className="mt-8 grid grid-cols-2 gap-3">
+                    <button 
+                      onClick={() => handleBan(selectedUser.id, selectedUser.isBanned)}
+                      className={cn(
+                        "py-4 rounded-2xl font-bold text-white transition-all shadow-lg active:scale-95",
+                        selectedUser.isBanned ? "bg-gray-400" : "bg-[#FF4444]"
+                      )}
+                    >
+                      {selectedUser.isBanned ? 'আন-ব্যান' : 'ব্যান করুন'}
+                    </button>
+                    <button 
+                      onClick={() => handleApprove(selectedUser.id, selectedUser.isVerified)}
+                      className={cn(
+                        "py-4 rounded-2xl font-bold text-white transition-all shadow-lg active:scale-95",
+                        selectedUser.isVerified ? "bg-blue-500" : "bg-[#28A745]"
+                      )}
+                    >
+                      {selectedUser.isVerified ? 'ভেরিফাইড' : 'অনুমোদন'}
+                    </button>
+                  </div>
+                )}
+
                 <button 
                   onClick={() => setSelectedUser(null)}
-                  className="w-full mt-8 py-4 bg-gray-900 text-white font-bold rounded-2xl hover:bg-gray-800 transition-colors"
+                  className="w-full mt-4 py-4 text-gray-400 font-bold hover:text-gray-600 transition-colors"
                 >
                   বন্ধ করুন
                 </button>
@@ -2383,6 +2467,20 @@ const JobsScreen = () => {
 
 export default function App() {
   const [user, loading] = useAuthState(auth);
+  const [profile, setProfile] = useState<any>(null);
+
+  useEffect(() => {
+    if (user) {
+      const docRef = doc(db, 'users', user.uid);
+      return onSnapshot(docRef, (snap) => {
+        if (snap.exists()) {
+          setProfile(snap.data());
+        }
+      });
+    } else {
+      setProfile(null);
+    }
+  }, [user]);
 
   if (loading) {
     return (
@@ -2394,6 +2492,10 @@ export default function App() {
 
   if (!user) {
     return <LoginScreen />;
+  }
+
+  if (profile?.isBanned) {
+    return <BannedScreen />;
   }
 
   return (

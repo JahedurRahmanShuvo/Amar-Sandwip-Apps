@@ -14,6 +14,8 @@
         "district": { "type": "string", "description": "Permanently set to Chittagong" },
         "role": { "type": "string", "enum": ["user", "admin"] },
         "isOnline": { "type": "boolean" },
+        "isBanned": { "type": "boolean" },
+        "isVerified": { "type": "boolean" },
         "lastActive": { "type": "string", "format": "date-time" }
       },
       "required": ["uid", "displayName", "role"]
