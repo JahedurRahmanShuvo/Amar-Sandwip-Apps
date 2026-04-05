@@ -44,9 +44,9 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() && 
-        (request.auth.token.email == "shuvojahedurrahman15@gmail.com" || 
-         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
+        (request.auth.token.email == "shuvojahedurrahman15@gmail.com" && request.auth.token.email_verified == true) || 
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
     }
 
     function isValidUser(data) {
@@ -63,12 +63,12 @@ service cloud.firestore {
     // ===============================================================
 
     match /users/{userId} {
-      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin() || request.auth.token.email == "shuvojahedurrahman15@gmail.com");
       allow create: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data) && 
                     (request.resource.data.role == 'user' || (request.auth.token.email == "shuvojahedurrahman15@gmail.com" && request.resource.data.role == 'admin'));
-      allow update: if isAuthenticated() && (isOwner(userId) || isAdmin()) && 
+      allow update: if isAuthenticated() && (isOwner(userId) || isAdmin() || request.auth.token.email == "shuvojahedurrahman15@gmail.com") && 
                     (isOwner(userId) ? (request.resource.data.role == resource.data.role && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isOnline', 'lastActive', 'displayName', 'photoURL', 'mobileNumber', 'union']))) : true);
-      allow delete: if isAdmin();
+      allow delete: if isAdmin() || request.auth.token.email == "shuvojahedurrahman15@gmail.com";
     }
 
     match /appSettings/{settingId} {

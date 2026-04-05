@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth, signInWithGoogle, logout, db, seedInitialData, handleFirestoreError, adminLogin, OperationType } from './firebase';
+import { auth, signInWithGoogle, logout, db, handleFirestoreError, adminLogin, OperationType } from './firebase';
 import { 
   Home, User, Settings, Ship, Heart, ShoppingBasket, 
   Briefcase, Camera, Phone, Search, ArrowLeft, LogOut,
@@ -128,7 +128,8 @@ const Header = ({ title, showBack = false }: { title: string; showBack?: boolean
       if (!snap.empty) {
         const lastNotif = snap.docs[0].data();
         const lastSeen = localStorage.getItem('lastSeenNotif');
-        if (lastSeen !== lastNotif.createdAt) {
+        const currentVersion = `${snap.docs[0].id}_${lastNotif.updatedAt || lastNotif.createdAt}`;
+        if (lastSeen !== currentVersion) {
           setHasNewNotif(true);
         }
       }
@@ -140,7 +141,9 @@ const Header = ({ title, showBack = false }: { title: string; showBack?: boolean
     const q = query(collection(db, 'notifications'), orderBy('createdAt', 'desc'), limit(1));
     getDocs(q).then(snap => {
       if (!snap.empty) {
-        localStorage.setItem('lastSeenNotif', snap.docs[0].data().createdAt);
+        const lastNotif = snap.docs[0].data();
+        const currentVersion = `${snap.docs[0].id}_${lastNotif.updatedAt || lastNotif.createdAt}`;
+        localStorage.setItem('lastSeenNotif', currentVersion);
       }
     });
     navigate('/notifications');
@@ -696,12 +699,12 @@ const SettingsScreen = () => {
         </div>
 
         {auth.currentUser?.email === 'shuvojahedurrahman15@gmail.com' && (
-          <div className="mt-8">
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-4">Admin Actions</h3>
+          <div className="mt-8 px-4">
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Admin Actions</h3>
             <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
               <Link 
                 to="/admin/dashboard"
-                className="w-full p-4 flex items-center justify-between hover:bg-gray-50 border-b border-gray-100 text-blue-600"
+                className="w-full p-4 flex items-center justify-between hover:bg-gray-50 text-blue-600"
               >
                 <div className="flex items-center gap-3">
                   <Edit2 className="w-5 h-5" />
@@ -709,13 +712,6 @@ const SettingsScreen = () => {
                 </div>
                 <ChevronRight className="w-5 h-5 text-gray-300" />
               </Link>
-              <button 
-                onClick={seedInitialData}
-                className="w-full p-4 flex items-center gap-3 hover:bg-gray-50 text-gray-600"
-              >
-                <ShoppingBasket className="w-5 h-5" />
-                <span className="font-medium">Seed Initial Data</span>
-              </button>
             </div>
           </div>
         )}
@@ -1610,38 +1606,101 @@ const AdminNotifications = () => {
   const [msg, setMsg] = useState('');
   const [isPopup, setIsPopup] = useState(false);
   const [sending, setSending] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingType, setEditingType] = useState<'notif' | 'announcement' | null>(null);
 
-  const handleSend = async () => {
+  useEffect(() => {
+    const qNotif = query(collection(db, 'notifications'), orderBy('createdAt', 'desc'));
+    const unsubNotif = onSnapshot(qNotif, (snap) => {
+      setNotifications(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'notifications'));
+
+    const qAnnounce = query(collection(db, 'announcements'), orderBy('createdAt', 'desc'));
+    const unsubAnnounce = onSnapshot(qAnnounce, (snap) => {
+      setAnnouncements(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'announcements'));
+
+    return () => {
+      unsubNotif();
+      unsubAnnounce();
+    };
+  }, []);
+
+  const handleSendOrUpdate = async () => {
     if (!title || !msg) return;
     setSending(true);
     try {
-      if (isPopup) {
-        await addDoc(collection(db, 'announcements'), {
-          title,
-          message: msg,
-          isActive: true,
-          createdAt: new Date().toISOString()
-        });
+      const payload = {
+        title,
+        message: msg,
+        updatedAt: new Date().toISOString()
+      };
+
+      if (editingId) {
+        const coll = editingType === 'announcement' ? 'announcements' : 'notifications';
+        await updateDoc(doc(db, coll, editingId), payload);
+        alert('সফলভাবে আপডেট করা হয়েছে!');
+        setEditingId(null);
+        setEditingType(null);
       } else {
-        await addDoc(collection(db, 'notifications'), {
-          title,
-          message: msg,
-          createdAt: new Date().toISOString()
-        });
+        const newPayload = { ...payload, createdAt: new Date().toISOString() };
+        if (isPopup) {
+          await addDoc(collection(db, 'announcements'), { ...newPayload, isActive: true });
+        } else {
+          await addDoc(collection(db, 'notifications'), newPayload);
+        }
+        alert('সফলভাবে পাঠানো হয়েছে!');
       }
-      alert('সফলভাবে পাঠানো হয়েছে!');
       setTitle('');
       setMsg('');
+      setIsPopup(false);
     } catch (err) {
-      console.error(err);
+      handleFirestoreError(err, editingId ? OperationType.UPDATE : OperationType.CREATE, editingType === 'announcement' ? 'announcements' : 'notifications');
     } finally {
       setSending(false);
     }
   };
 
+  const handleEdit = (item: any, type: 'notif' | 'announcement') => {
+    setTitle(item.title);
+    setMsg(item.message);
+    setEditingId(item.id);
+    setEditingType(type);
+    setIsPopup(type === 'announcement');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDelete = async (id: string, type: 'notif' | 'announcement') => {
+    if (!window.confirm('আপনি কি নিশ্চিত যে এটি ডিলিট করতে চান?')) return;
+    try {
+      const coll = type === 'announcement' ? 'announcements' : 'notifications';
+      await deleteDoc(doc(db, coll, id));
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, type === 'announcement' ? 'announcements' : 'notifications');
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditingType(null);
+    setTitle('');
+    setMsg('');
+    setIsPopup(false);
+  };
+
   return (
-    <div className="space-y-4">
-      <h2 className="text-lg font-bold">নোটিফিকেশন কন্ট্রোল</h2>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-lg font-bold">নোটিফিকেশন কন্ট্রোল</h2>
+        {editingId && (
+          <button onClick={cancelEdit} className="text-red-500 text-sm font-bold flex items-center gap-1">
+            <X className="w-4 h-4" /> এডিট বাতিল করুন
+          </button>
+        )}
+      </div>
+
       <div className="bg-white p-6 rounded-2xl shadow-md space-y-4">
         <input 
           type="text"
@@ -1657,22 +1716,76 @@ const AdminNotifications = () => {
           className="w-full p-4 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
           rows={5}
         />
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input 
-            type="checkbox" 
-            checked={isPopup}
-            onChange={(e) => setIsPopup(e.target.checked)}
-            className="w-5 h-5 rounded"
-          />
-          <span className="text-sm font-medium text-gray-700">পপ-আপ হিসেবে পাঠান</span>
-        </label>
+        {!editingId && (
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input 
+              type="checkbox" 
+              checked={isPopup}
+              onChange={(e) => setIsPopup(e.target.checked)}
+              className="w-5 h-5 rounded"
+            />
+            <span className="text-sm font-medium text-gray-700">পপ-আপ হিসেবে পাঠান</span>
+          </label>
+        )}
         <button 
-          onClick={handleSend}
+          onClick={handleSendOrUpdate}
           disabled={sending}
           className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
         >
-          {sending ? 'পাঠানো হচ্ছে...' : <><Bell className="w-5 h-5" /> পাঠান</>}
+          {sending ? 'প্রসেস হচ্ছে...' : (
+            editingId ? <><Save className="w-5 h-5" /> আপডেট করুন</> : <><Bell className="w-5 h-5" /> পাঠান</>
+          )}
         </button>
+      </div>
+
+      <div className="space-y-4">
+        <h3 className="font-bold text-gray-700">আগের নোটিফিকেশনসমূহ</h3>
+        
+        <div className="space-y-3">
+          <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">পপ-আপ অ্যানাউন্সমেন্ট</h4>
+          {announcements.map(item => (
+            <div key={item.id} className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-orange-500">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h5 className="font-bold text-sm">{item.title}</h5>
+                  <p className="text-xs text-gray-500 line-clamp-2">{item.message}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => handleEdit(item, 'announcement')} className="p-2 text-blue-600 bg-blue-50 rounded-lg">
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => handleDelete(item.id, 'announcement')} className="p-2 text-red-600 bg-red-50 rounded-lg">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+          {announcements.length === 0 && <p className="text-xs text-gray-400 italic">কোনো পপ-আপ নেই</p>}
+        </div>
+
+        <div className="space-y-3">
+          <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">সাধারণ নোটিফিকেশন</h4>
+          {notifications.map(item => (
+            <div key={item.id} className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-500">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h5 className="font-bold text-sm">{item.title}</h5>
+                  <p className="text-xs text-gray-500 line-clamp-2">{item.message}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => handleEdit(item, 'notif')} className="p-2 text-blue-600 bg-blue-50 rounded-lg">
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => handleDelete(item.id, 'notif')} className="p-2 text-red-600 bg-red-50 rounded-lg">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+          {notifications.length === 0 && <p className="text-xs text-gray-400 italic">কোনো নোটিফিকেশন নেই</p>}
+        </div>
       </div>
     </div>
   );
@@ -1741,8 +1854,9 @@ const NotificationsScreen = () => {
           <div key={n.id} className="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-blue-500">
             <h3 className="font-bold text-gray-900 mb-1">{n.title}</h3>
             <p className="text-gray-600 text-sm mb-2">{n.message}</p>
-            <div className="text-[10px] text-gray-400">
-              {new Date(n.createdAt).toLocaleString('bn-BD')}
+            <div className="text-[10px] text-gray-400 flex justify-between">
+              <span>{new Date(n.createdAt).toLocaleString('bn-BD')}</span>
+              {n.updatedAt && <span className="italic text-blue-400">আপডেট করা হয়েছে</span>}
             </div>
           </div>
         )) : (

@@ -106,32 +106,6 @@ export const adminLogin = async (email: string, pass: string) => {
   }
 };
 
-export const seedInitialData = async () => {
-  const transports = [
-    { name: 'এম.ভি. কাপোতাঙ্ক', route: 'Kumira-Guptachhara', time: '১০:০০', price: 150, status: 'সময়মতো ছাড়বে' },
-    { name: 'এম.ভি. আইভি রহমান', route: 'Kumira-Guptachhara', time: '১২:৩০', price: 150, status: 'সময়মতো ছাড়বে' },
-    { name: 'স্পিড বোট', route: 'Guptachhara-Sitakunda', time: '০৯:০০', price: 300, status: 'সময়মতো ছাড়বে' },
-  ];
-
-  const services = [
-    { name: 'সন্দ্বীপ থানা', category: 'পুলিশ', contactNumber: '01713373269', location: 'শিবের হাট রোড', officerName: 'ওসি সন্দ্বীপ' },
-    { name: 'সরকারি হাসপাতাল', category: 'স্বাস্থ্য', contactNumber: '01711122233', location: 'এনাম নাহার মোড়', officerName: 'উপজেলা স্বাস্থ্য কর্মকর্তা' },
-    { name: 'ফায়ার সার্ভিস', category: 'জরুরি', contactNumber: '01711445566', location: 'থানা মোড়', officerName: 'স্টেশন অফিসার' },
-  ];
-
-  const market = [
-    { productName: 'ইলিশ মাছ', priceRange: '৮০০-১০০০', unit: 'কেজি', imageUrl: 'https://picsum.photos/seed/hilsa/200/150', updatedAt: new Date().toISOString() },
-    { productName: 'আলু', priceRange: '৩০-৩২', unit: 'কেজি', imageUrl: 'https://picsum.photos/seed/potato/200/150', updatedAt: new Date().toISOString() },
-    { productName: 'পেঁয়াজ', priceRange: '৭০-৮০', unit: 'কেজি', imageUrl: 'https://picsum.photos/seed/onion/200/150', updatedAt: new Date().toISOString() },
-  ];
-
-  for (const t of transports) await addDoc(collection(db, 'transports'), t);
-  for (const s of services) await addDoc(collection(db, 'emergencyServices'), s);
-  for (const m of market) await addDoc(collection(db, 'marketPrices'), m);
-  
-  alert('Data seeded successfully!');
-};
-
 export const logout = () => signOut(auth);
 
 // Test connection
