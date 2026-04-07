@@ -779,12 +779,32 @@ const AdminLogin = () => {
   const [password, setPassword] = useState('');
   const [showPasswordInput, setShowPasswordInput] = useState(false);
   const [error, setError] = useState('');
+  const [storedPassword, setStoredPassword] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     if (user) {
       if (user.email === 'shuvojahedurrahman15@gmail.com') {
         setShowPasswordInput(true);
+        // Fetch stored password
+        const fetchPassword = async () => {
+          try {
+            const docRef = doc(db, 'adminConfig', 'security');
+            const snap = await getDoc(docRef);
+            if (snap.exists()) {
+              setStoredPassword(snap.data().secondaryPassword);
+            } else {
+              // Initialize if not exists
+              await setDoc(docRef, { secondaryPassword: 'Jahedur1*' });
+              setStoredPassword('Jahedur1*');
+            }
+          } catch (err) {
+            console.error("Error fetching admin password:", err);
+            // Fallback to default if fetch fails (might be permission issue if rules not propagated)
+            setStoredPassword('Jahedur1*');
+          }
+        };
+        fetchPassword();
       } else {
         logout().then(() => {
           setError('আপনি এডমিন নন।');
@@ -795,7 +815,8 @@ const AdminLogin = () => {
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === 'Jahedur1*') {
+    const targetPassword = storedPassword || 'Jahedur1*';
+    if (password === targetPassword) {
       sessionStorage.setItem('isAdminAuthenticated', 'true');
       navigate('/admin/dashboard');
     } else {
@@ -1715,6 +1736,7 @@ const AdminUsers = () => {
 const AdminSettings = () => {
   const [settings, setSettings] = useState<any>({ about: '', terms: '' });
   const [saving, setSaving] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
 
   useEffect(() => {
     return onSnapshot(doc(db, 'appSettings', 'general'), (snap) => {
@@ -1764,6 +1786,172 @@ const AdminSettings = () => {
           {saving ? 'আপডেট হচ্ছে...' : <><Save className="w-5 h-5" /> আপডেট করুন</>}
         </button>
       </div>
+
+      <h2 className="text-lg font-bold mt-8">নিরাপত্তা সেটিংস</h2>
+      <div className="bg-white p-6 rounded-2xl shadow-md">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="font-bold text-gray-900">সেকেন্ডারি পাসওয়ার্ড</div>
+            <div className="text-xs text-gray-500">এডমিন প্যানেলে প্রবেশের জন্য অতিরিক্ত সুরক্ষা</div>
+          </div>
+          <button 
+            onClick={() => setShowPasswordModal(true)}
+            className="px-4 py-2 bg-blue-50 text-blue-600 font-bold rounded-xl hover:bg-blue-100 transition-all"
+          >
+            পরিবর্তন করুন
+          </button>
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {showPasswordModal && (
+          <AdminPasswordChangeModal onClose={() => setShowPasswordModal(false)} />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+const AdminPasswordChangeModal = ({ onClose }: { onClose: () => void }) => {
+  const [step, setStep] = useState(1); // 1: Verify, 2: New, 3: Confirm
+  const [currentPass, setCurrentPass] = useState('');
+  const [newPass, setNewPass] = useState('');
+  const [confirmPass, setConfirmPass] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleVerify = async () => {
+    setLoading(true);
+    try {
+      const snap = await getDoc(doc(db, 'adminConfig', 'security'));
+      const stored = snap.exists() ? snap.data().secondaryPassword : 'Jahedur1*';
+      
+      if (currentPass === stored) {
+        setStep(2);
+        setError('');
+      } else {
+        setError('বর্তমান পাসওয়ার্ডটি সঠিক নয়।');
+      }
+    } catch (err) {
+      setError('সার্ভার ত্রুটি। আবার চেষ্টা করুন।');
+    }
+    setLoading(false);
+  };
+
+  const handleUpdate = async () => {
+    if (newPass !== confirmPass) {
+      setError('পাসওয়ার্ড দুটি মিলছে না।');
+      return;
+    }
+    if (newPass.length < 6) {
+      setError('পাসওয়ার্ড অন্তত ৬ অক্ষরের হতে হবে।');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await setDoc(doc(db, 'adminConfig', 'security'), {
+        secondaryPassword: newPass
+      });
+      alert('পাসওয়ার্ড সফলভাবে পরিবর্তন করা হয়েছে।');
+      onClose();
+    } catch (err) {
+      setError('পাসওয়ার্ড আপডেট করতে সমস্যা হয়েছে।');
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <motion.div 
+        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.9, opacity: 0, y: 20 }}
+        className="bg-white w-full max-w-sm rounded-[40px] overflow-hidden shadow-2xl relative border border-gray-100"
+      >
+        <div className="h-20 bg-blue-50 border-b border-blue-100 flex items-center justify-center">
+          <div className="w-12 h-12 bg-white rounded-2xl shadow-sm flex items-center justify-center text-blue-600">
+            <Edit2 className="w-6 h-6" />
+          </div>
+        </div>
+
+        <button 
+          onClick={onClose}
+          className="absolute top-4 right-4 p-2 bg-white/80 hover:bg-white rounded-full text-gray-400 shadow-sm transition-all z-10"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        <div className="p-8 text-center">
+          <h2 className="text-2xl font-bold text-black mb-2">পাসওয়ার্ড পরিবর্তন</h2>
+          <p className="text-gray-500 text-sm mb-8">নিরাপত্তার জন্য আপনার সেকেন্ডারি পাসওয়ার্ড আপডেট করুন।</p>
+
+          {error && <div className="mb-4 p-3 bg-red-50 text-red-600 text-xs rounded-xl font-bold">{error}</div>}
+
+          <div className="space-y-4">
+            {step === 1 && (
+              <div className="space-y-4">
+                <div className="text-left">
+                  <label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider ml-2">বর্তমান পাসওয়ার্ড</label>
+                  <input 
+                    type="password"
+                    value={currentPass}
+                    onChange={(e) => setCurrentPass(e.target.value)}
+                    className="w-full mt-1 p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all font-sans"
+                    placeholder="••••••••"
+                  />
+                </div>
+                <button 
+                  onClick={handleVerify}
+                  disabled={loading || !currentPass}
+                  className="w-full py-4 bg-blue-600 text-white font-bold rounded-2xl shadow-lg active:scale-95 transition-all disabled:opacity-50"
+                >
+                  {loading ? 'যাচাই করা হচ্ছে...' : 'পরবর্তী ধাপ'}
+                </button>
+              </div>
+            )}
+
+            {step === 2 && (
+              <div className="space-y-4">
+                <div className="text-left">
+                  <label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider ml-2">নতুন পাসওয়ার্ড</label>
+                  <input 
+                    type="password"
+                    value={newPass}
+                    onChange={(e) => setNewPass(e.target.value)}
+                    className="w-full mt-1 p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all font-sans"
+                    placeholder="••••••••"
+                  />
+                </div>
+                <div className="text-left">
+                  <label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider ml-2">পাসওয়ার্ড নিশ্চিত করুন</label>
+                  <input 
+                    type="password"
+                    value={confirmPass}
+                    onChange={(e) => setConfirmPass(e.target.value)}
+                    className="w-full mt-1 p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all font-sans"
+                    placeholder="••••••••"
+                  />
+                </div>
+                <button 
+                  onClick={handleUpdate}
+                  disabled={loading || !newPass || !confirmPass}
+                  className="w-full py-4 bg-[#28A745] text-white font-bold rounded-2xl shadow-lg active:scale-95 transition-all disabled:opacity-50"
+                >
+                  {loading ? 'আপডেট হচ্ছে...' : 'পাসওয়ার্ড আপডেট করুন'}
+                </button>
+              </div>
+            )}
+          </div>
+
+          <button 
+            onClick={onClose}
+            className="mt-6 text-gray-400 font-bold text-sm hover:text-gray-600 transition-colors"
+          >
+            বাতিল করুন
+          </button>
+        </div>
+      </motion.div>
     </div>
   );
 };

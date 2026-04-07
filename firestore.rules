@@ -126,5 +126,9 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    match /adminConfig/{configId} {
+      allow read, write: if isAdmin();
+    }
   }
 }

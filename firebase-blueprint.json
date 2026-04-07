@@ -138,6 +138,15 @@
         "postedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["title", "company", "postedAt"]
+    },
+    "AdminConfig": {
+      "title": "Admin Configuration",
+      "description": "Sensitive admin settings",
+      "type": "object",
+      "properties": {
+        "secondaryPassword": { "type": "string" }
+      },
+      "required": ["secondaryPassword"]
     }
   },
   "firestore": {
@@ -180,6 +189,10 @@
     "announcements/{annId}": {
       "schema": "Announcement",
       "description": "Pop-up announcements"
+    },
+    "adminConfig/{configId}": {
+      "schema": "AdminConfig",
+      "description": "Admin security settings"
     }
   }
 }
