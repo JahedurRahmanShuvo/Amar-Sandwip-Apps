@@ -229,6 +229,29 @@ const BannedScreen = () => {
 // --- Screens ---
 
 const LoginScreen = () => {
+  const [isSigningIn, setIsSigningIn] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleLogin = async () => {
+    if (isSigningIn) return;
+    setIsSigningIn(true);
+    setError('');
+    try {
+      await signInWithGoogle();
+    } catch (err: any) {
+      if (err.code === 'auth/popup-closed-by-user') {
+        setError('লগইন উইন্ডোটি বন্ধ করা হয়েছে। আবার চেষ্টা করুন।');
+      } else if (err.code === 'auth/cancelled-popup-request') {
+        // Ignore, another request is already in progress
+      } else {
+        setError('লগইন করতে সমস্যা হয়েছে। দয়া করে আবার চেষ্টা করুন।');
+      }
+      console.error(err);
+    } finally {
+      setIsSigningIn(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-[#E0F2F7]">
       <div className="w-24 h-24 bg-blue-600 rounded-full flex items-center justify-center mb-6 shadow-lg">
@@ -236,12 +259,19 @@ const LoginScreen = () => {
       </div>
       <h1 className="text-3xl font-bold text-gray-900 mb-2">আমার সন্দ্বীপ</h1>
       <p className="text-gray-600 mb-8 text-center">সন্দ্বীপবাসীর জন্য একটি সমন্বিত ডিজিটাল প্ল্যাটফর্ম</p>
+      
+      {error && <div className="mb-4 p-3 bg-red-100 text-red-600 text-sm rounded-xl font-medium text-center max-w-xs">{error}</div>}
+
       <button 
-        onClick={signInWithGoogle}
-        className="w-full max-w-xs bg-white text-gray-700 font-semibold py-3 px-6 rounded-xl shadow-md flex items-center justify-center gap-3 hover:bg-gray-50 transition-colors"
+        onClick={handleLogin}
+        disabled={isSigningIn}
+        className={cn(
+          "w-full max-w-xs bg-white text-gray-700 font-semibold py-3 px-6 rounded-xl shadow-md flex items-center justify-center gap-3 hover:bg-gray-50 transition-colors",
+          isSigningIn && "opacity-50 cursor-not-allowed"
+        )}
       >
         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
-        গুগল দিয়ে লগইন করুন
+        {isSigningIn ? 'অপেক্ষা করুন...' : 'গুগল দিয়ে লগইন করুন'}
       </button>
     </div>
   );
@@ -780,6 +810,7 @@ const AdminLogin = () => {
   const [showPasswordInput, setShowPasswordInput] = useState(false);
   const [error, setError] = useState('');
   const [storedPassword, setStoredPassword] = useState<string | null>(null);
+  const [isSigningIn, setIsSigningIn] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -813,6 +844,26 @@ const AdminLogin = () => {
     }
   }, [user]);
 
+  const handleGoogleLogin = async () => {
+    if (isSigningIn) return;
+    setIsSigningIn(true);
+    setError('');
+    try {
+      await signInWithGoogle();
+    } catch (err: any) {
+      if (err.code === 'auth/popup-closed-by-user') {
+        setError('লগইন উইন্ডোটি বন্ধ করা হয়েছে।');
+      } else if (err.code === 'auth/cancelled-popup-request') {
+        // Ignore
+      } else {
+        setError('লগইন করতে সমস্যা হয়েছে।');
+      }
+      console.error(err);
+    } finally {
+      setIsSigningIn(false);
+    }
+  };
+
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const targetPassword = storedPassword || 'Jahedur1*';
@@ -839,11 +890,15 @@ const AdminLogin = () => {
         
         {!user && !showPasswordInput && (
           <button 
-            onClick={signInWithGoogle}
-            className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 text-gray-700 font-bold py-3 rounded-xl shadow-sm hover:bg-gray-50 transition-all"
+            onClick={handleGoogleLogin}
+            disabled={isSigningIn}
+            className={cn(
+              "w-full flex items-center justify-center gap-3 bg-white border border-gray-300 text-gray-700 font-bold py-3 rounded-xl shadow-sm hover:bg-gray-50 transition-all",
+              isSigningIn && "opacity-50 cursor-not-allowed"
+            )}
           >
             <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5" />
-            গুগল দিয়ে লগইন করুন
+            {isSigningIn ? 'অপেক্ষা করুন...' : 'গুগল দিয়ে লগইন করুন'}
           </button>
         )}
 
