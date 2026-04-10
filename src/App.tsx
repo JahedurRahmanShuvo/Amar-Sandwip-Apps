@@ -324,6 +324,7 @@ const Dashboard = () => {
 const TransportScreen = () => {
   const [activeTab, setActiveTab] = useState('kumira');
   const [transports, setTransports] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     if (!db) return;
@@ -337,9 +338,12 @@ const TransportScreen = () => {
     return unsubscribe;
   }, []);
 
-  const filteredTransports = transports.filter(t => 
-    activeTab === 'kumira' ? t.route === 'Kumira-Guptachhara' : t.route === 'Guptachhara-Sitakunda'
-  );
+  const filteredTransports = transports.filter(t => {
+    const matchRoute = activeTab === 'kumira' ? t.route === 'Kumira-Guptachhara' : t.route === 'Guptachhara-Sitakunda';
+    const matchSearch = t.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                        (t.tripNumber && t.tripNumber.toLowerCase().includes(searchQuery.toLowerCase()));
+    return matchRoute && matchSearch;
+  });
 
   return (
     <div className="pb-20">
@@ -364,6 +368,8 @@ const TransportScreen = () => {
           <input 
             type="text" 
             placeholder="জাহাজ বা বোট খুঁজুন" 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-white border-none rounded-xl py-2 pl-10 pr-4 shadow-sm outline-none"
           />
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -373,14 +379,17 @@ const TransportScreen = () => {
           {filteredTransports.length > 0 ? filteredTransports.map((t) => (
             <div key={t.id} className="bg-white p-4 rounded-2xl shadow-sm">
               <div className="flex justify-between items-start mb-2">
-                <h3 className="font-bold text-lg text-gray-900">{t.name}</h3>
+                <div>
+                  <h3 className="font-bold text-lg text-gray-900">{t.name}</h3>
+                  {t.tripNumber && <span className="text-xs text-blue-600 font-semibold">{t.tripNumber}</span>}
+                </div>
                 <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-medium">
                   {t.status || 'সময়মতো ছাড়বে'}
                 </span>
               </div>
               <div className="flex justify-between items-center text-gray-600">
                 <div className="flex items-center gap-1">
-                  <span className="text-sm">সকাল {t.time}</span>
+                  <span className="text-sm">{t.timeOfDay || 'সকাল'} {t.time}</span>
                 </div>
                 <div className="font-bold text-blue-600">{t.price} টাকা</div>
               </div>
@@ -1262,6 +1271,8 @@ const AdminTransport = () => {
       name: data.get('name'),
       route: data.get('route'),
       time: data.get('time'),
+      timeOfDay: data.get('timeOfDay'),
+      tripNumber: data.get('tripNumber'),
       price: Number(data.get('price')),
       status: data.get('status') || 'সময়মতো ছাড়বে',
       imageUrl: selectedImage || editing?.imageUrl || `https://picsum.photos/seed/${data.get('name')}/300/200`
@@ -1312,7 +1323,16 @@ const AdminTransport = () => {
             <option value="Kumira-Guptachhara">কুমিরা-গুপ্তছড়া</option>
             <option value="Guptachhara-Sitakunda">গুপ্তছড়া-সীতাকুণ্ড</option>
           </select>
-          <input name="time" defaultValue={editing?.time} placeholder="সময় (উদা: ১০:০০)" className="w-full p-2 border rounded-lg" required />
+          <div className="flex gap-2">
+            <select name="timeOfDay" defaultValue={editing?.timeOfDay || 'সকাল'} className="flex-1 p-2 border rounded-lg">
+              <option value="সকাল">সকাল</option>
+              <option value="দুপুর">দুপুর</option>
+              <option value="বিকাল">বিকাল</option>
+              <option value="রাত">রাত</option>
+            </select>
+            <input name="time" defaultValue={editing?.time} placeholder="সময় (উদা: ১০:০০)" className="flex-1 p-2 border rounded-lg" required />
+          </div>
+          <input name="tripNumber" defaultValue={editing?.tripNumber} placeholder="ট্রিপ নম্বর (উদা: ১ম ট্রিপ)" className="w-full p-2 border rounded-lg" />
           <input name="price" type="number" defaultValue={editing?.price} placeholder="ভাড়া" className="w-full p-2 border rounded-lg" required />
           <input name="status" defaultValue={editing?.status} placeholder="স্ট্যাটাস" className="w-full p-2 border rounded-lg" />
           <div className="flex gap-2">
@@ -1327,8 +1347,8 @@ const AdminTransport = () => {
           <div key={item.id} className="bg-white p-4 rounded-xl shadow-sm flex items-center gap-4">
             <img src={item.imageUrl || `https://picsum.photos/seed/${item.name}/100/100`} alt="" className="w-16 h-16 rounded-lg object-cover" />
             <div className="flex-1">
-              <div className="font-bold">{item.name}</div>
-              <div className="text-xs text-gray-500">{item.route} | {item.time} | {item.price}৳</div>
+              <div className="font-bold">{item.name} {item.tripNumber && <span className="text-blue-600 font-normal">({item.tripNumber})</span>}</div>
+              <div className="text-xs text-gray-500">{item.route} | {item.timeOfDay} {item.time} | {item.price}৳</div>
             </div>
             <div className="flex gap-2">
               <button onClick={() => {setEditing(item); setIsAdding(false); setSelectedImage(null); window.scrollTo(0,0);}} className="p-2 text-blue-600"><Edit2 className="w-4 h-4" /></button>

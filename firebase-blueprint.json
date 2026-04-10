@@ -95,6 +95,8 @@
         "name": { "type": "string" },
         "route": { "type": "string", "enum": ["Kumira-Guptachhara", "Guptachhara-Sitakunda"] },
         "time": { "type": "string" },
+        "timeOfDay": { "type": "string", "enum": ["সকাল", "দুপুর", "বিকাল", "রাত"] },
+        "tripNumber": { "type": "string", "description": "e.g. ১ম ট্রিপ" },
         "price": { "type": "number" },
         "status": { "type": "string" }
       },
