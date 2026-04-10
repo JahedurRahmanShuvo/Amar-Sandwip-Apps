@@ -933,7 +933,7 @@ const AdminBlood = () => {
   useEffect(() => {
     return onSnapshot(collection(db, 'bloodDonors'), (snap) => {
       setItems(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'bloodDonors'));
   }, []);
 
   const handleApprove = async (id: string, current: boolean) => {
@@ -974,7 +974,7 @@ const AdminProfessionals = () => {
   useEffect(() => {
     return onSnapshot(collection(db, 'professionals'), (snap) => {
       setItems(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'professionals'));
   }, []);
 
   const handleApprove = async (id: string, current: boolean) => {
@@ -1018,7 +1018,7 @@ const AdminGallery = () => {
   useEffect(() => {
     return onSnapshot(collection(db, 'galleryItems'), (snap) => {
       setItems(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'galleryItems'));
   }, []);
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1120,6 +1120,11 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('transport');
   const [user, loading] = useAuthState(auth);
   const navigate = useNavigate();
+  const [pendingCounts, setPendingCounts] = useState<Record<string, number>>({
+    blood: 0,
+    profs: 0,
+    gallery: 0
+  });
 
   useEffect(() => {
     if (!loading) {
@@ -1129,6 +1134,28 @@ const AdminDashboard = () => {
       }
     }
   }, [user, loading, navigate]);
+
+  useEffect(() => {
+    if (!db) return;
+    
+    const unsubBlood = onSnapshot(query(collection(db, 'bloodDonors'), where('isApproved', '==', false)), (snap) => {
+      setPendingCounts(prev => ({ ...prev, blood: snap.size }));
+    });
+
+    const unsubProfs = onSnapshot(query(collection(db, 'professionals'), where('isApproved', '==', false)), (snap) => {
+      setPendingCounts(prev => ({ ...prev, profs: snap.size }));
+    });
+
+    const unsubGallery = onSnapshot(query(collection(db, 'galleryItems'), where('isApproved', '==', false)), (snap) => {
+      setPendingCounts(prev => ({ ...prev, gallery: snap.size }));
+    });
+
+    return () => {
+      unsubBlood();
+      unsubProfs();
+      unsubGallery();
+    };
+  }, []);
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -1144,9 +1171,9 @@ const AdminDashboard = () => {
     { id: 'transport', label: 'যাতায়াত', icon: Ship },
     { id: 'emergency', label: 'জরুরি', icon: Phone },
     { id: 'market', label: 'বাজার', icon: ShoppingBasket },
-    { id: 'blood', label: 'রক্তদান', icon: Heart },
-    { id: 'profs', label: 'পেশাজীবী', icon: Briefcase },
-    { id: 'gallery', label: 'গ্যালারি', icon: Camera },
+    { id: 'blood', label: 'রক্তদান', icon: Heart, count: pendingCounts.blood },
+    { id: 'profs', label: 'পেশাজীবী', icon: Briefcase, count: pendingCounts.profs },
+    { id: 'gallery', label: 'গ্যালারি', icon: Camera, count: pendingCounts.gallery },
     { id: 'users', label: 'ইউজার', icon: Users },
     { id: 'notif', label: 'নোটিশ', icon: Bell },
     { id: 'settings', label: 'সেটিংস', icon: Settings },
@@ -1179,11 +1206,18 @@ const AdminDashboard = () => {
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              "flex flex-col items-center gap-1 min-w-[70px] flex-1",
+              "flex flex-col items-center gap-1 min-w-[70px] flex-1 relative",
               activeTab === tab.id ? "text-blue-600" : "text-gray-400"
             )}
           >
-            <tab.icon className="w-5 h-5" />
+            <div className="relative">
+              <tab.icon className="w-5 h-5" />
+              {(tab as any).count > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[8px] font-bold px-1 rounded-full min-w-[14px] h-[14px] flex items-center justify-center">
+                  {(tab as any).count}
+                </span>
+              )}
+            </div>
             <span className="text-[10px] whitespace-nowrap">{tab.label}</span>
           </button>
         ))}
@@ -2581,6 +2615,10 @@ const GalleryScreen = () => {
 
   const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!user) {
+      alert('ছবি আপলোড করতে দয়া করে লগইন করুন।');
+      return;
+    }
     const data = new FormData(e.currentTarget);
     if (!selectedImage) {
       alert('দয়া করে একটি ছবি সিলেক্ট করুন।');
@@ -2589,9 +2627,9 @@ const GalleryScreen = () => {
 
     try {
       await addDoc(collection(db, 'galleryItems'), {
-        uid: user?.uid,
+        uid: user.uid,
         imageUrl: selectedImage,
-        caption: data.get('caption'),
+        caption: data.get('caption') || '',
         isApproved: false,
         createdAt: new Date().toISOString()
       });
@@ -2599,8 +2637,7 @@ const GalleryScreen = () => {
       setIsUploading(false);
       setSelectedImage(null);
     } catch (err) {
-      console.error(err);
-      alert('আপলোড করতে সমস্যা হয়েছে।');
+      handleFirestoreError(err, OperationType.CREATE, 'galleryItems');
     }
   };
 
@@ -2608,12 +2645,19 @@ const GalleryScreen = () => {
     <div className="pb-20">
       <Header title="সন্দ্বীপ গ্যালারি" showBack />
       <div className="p-4">
-        <button 
-          onClick={() => {setIsUploading(true); setSelectedImage(null);}}
-          className="w-full bg-sky-400 text-white font-bold py-3 rounded-2xl shadow-lg flex items-center justify-center gap-2 mb-6"
-        >
-          <Camera className="w-5 h-5" /> ছবি পাঠান
-        </button>
+        {user ? (
+          <button 
+            onClick={() => {setIsUploading(true); setSelectedImage(null);}}
+            className="w-full bg-sky-400 text-white font-bold py-3 rounded-2xl shadow-lg flex items-center justify-center gap-2 mb-6"
+          >
+            <Camera className="w-5 h-5" /> ছবি পাঠান
+          </button>
+        ) : (
+          <div className="bg-blue-50 p-4 rounded-2xl mb-6 text-center">
+            <p className="text-blue-600 text-sm font-medium mb-3">ছবি শেয়ার করতে লগইন করুন</p>
+            <Link to="/login" className="inline-block bg-blue-600 text-white px-6 py-2 rounded-xl text-sm font-bold">লগইন করুন</Link>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-4">
           {items.length > 0 ? items.map((item) => (

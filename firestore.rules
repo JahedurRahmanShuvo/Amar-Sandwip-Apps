@@ -30,7 +30,6 @@ service cloud.firestore {
     }
 
     // 2. Public Information: Everyone can read, but only Admin can write.
-    // This includes transport, market prices, emergency services, etc.
     match /transports/{id} { allow read: if true; allow write: if isAdmin(); }
     match /marketPrices/{id} { allow read: if true; allow write: if isAdmin(); }
     match /emergencyServices/{id} { allow read: if true; allow write: if isAdmin(); }
@@ -38,11 +37,26 @@ service cloud.firestore {
     match /appSettings/{id} { allow read: if true; allow write: if isAdmin(); }
     match /notifications/{id} { allow read: if true; allow write: if isAdmin(); }
     match /announcements/{id} { allow read: if true; allow write: if isAdmin(); }
-    match /galleryItems/{id} { allow read: if true; allow write: if isAdmin(); }
-    match /professionals/{id} { allow read: if true; allow write: if isAdmin(); }
-    match /bloodDonors/{id} { allow read: if true; allow write: if isAdmin(); }
 
-    // 3. Admin Config: Only Admin can access
+    // 3. User Submissions (Blood, Professionals, Gallery)
+    // Users can create (with isApproved: false), Admin can do everything.
+    match /bloodDonors/{id} { 
+      allow read: if true; 
+      allow create: if isAuthenticated() && request.resource.data.isApproved == false;
+      allow update, delete: if isAdmin() || (isOwner(resource.data.uid) && request.resource.data.isApproved == resource.data.isApproved);
+    }
+    match /professionals/{id} { 
+      allow read: if true; 
+      allow create: if isAuthenticated() && request.resource.data.isApproved == false;
+      allow update, delete: if isAdmin() || (isOwner(resource.data.uid) && request.resource.data.isApproved == resource.data.isApproved);
+    }
+    match /galleryItems/{id} { 
+      allow read: if true; 
+      allow create: if isAuthenticated() && request.resource.data.isApproved == false;
+      allow update, delete: if isAdmin() || (isOwner(resource.data.uid) && request.resource.data.isApproved == resource.data.isApproved);
+    }
+
+    // 4. Admin Config: Only Admin can access
     match /adminConfig/{id} {
       allow read, write: if isAdmin();
     }
