@@ -326,7 +326,7 @@ const TransportScreen = () => {
   const [transports, setTransports] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!auth.currentUser || !db) return;
+    if (!db) return;
     const q = collection(db, 'transports');
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -399,7 +399,7 @@ const EmergencyScreen = () => {
   const [services, setServices] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!auth.currentUser || !db) return;
+    if (!db) return;
     const q = collection(db, 'emergencyServices');
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -470,7 +470,7 @@ const MarketScreen = () => {
   const [prices, setPrices] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!auth.currentUser || !db) return;
+    if (!db) return;
     const q = collection(db, 'marketPrices');
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -2677,7 +2677,6 @@ const JobsScreen = () => {
   const [jobs, setJobs] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!auth.currentUser) return;
     const q = collection(db, 'jobCirculars');
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
