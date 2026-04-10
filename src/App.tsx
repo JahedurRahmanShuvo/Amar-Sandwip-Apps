@@ -362,7 +362,7 @@ const TransportScreen = () => {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "flex-1 py-3 px-4 font-semibold text-xs whitespace-nowrap transition-colors relative",
+                "flex-1 py-4 px-6 font-bold text-sm md:text-base whitespace-nowrap transition-colors relative",
                 activeTab === tab.id ? "text-blue-600" : "text-gray-500"
               )}
             >
