@@ -243,6 +243,8 @@ const LoginScreen = () => {
         setError('লগইন উইন্ডোটি বন্ধ করা হয়েছে। আবার চেষ্টা করুন।');
       } else if (err.code === 'auth/cancelled-popup-request') {
         // Ignore, another request is already in progress
+      } else if (err.code === 'auth/unauthorized-domain') {
+        setError('এই ডোমেইনটি Firebase-এ অনুমোদিত নয়। দয়া করে এডমিনের সাথে যোগাযোগ করুন।');
       } else {
         setError('লগইন করতে সমস্যা হয়েছে। দয়া করে আবার চেষ্টা করুন।');
       }
@@ -324,7 +326,7 @@ const TransportScreen = () => {
   const [transports, setTransports] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!auth.currentUser) return;
+    if (!auth.currentUser || !db) return;
     const q = collection(db, 'transports');
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -397,7 +399,7 @@ const EmergencyScreen = () => {
   const [services, setServices] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!auth.currentUser) return;
+    if (!auth.currentUser || !db) return;
     const q = collection(db, 'emergencyServices');
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -468,7 +470,7 @@ const MarketScreen = () => {
   const [prices, setPrices] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!auth.currentUser) return;
+    if (!auth.currentUser || !db) return;
     const q = collection(db, 'marketPrices');
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -573,7 +575,7 @@ const ProfileScreen = () => {
   };
 
   useEffect(() => {
-    if (user) {
+    if (user && db) {
       const docRef = doc(db, 'users', user.uid);
       updateDoc(docRef, { 
         isOnline: true, 
@@ -581,7 +583,7 @@ const ProfileScreen = () => {
       });
       
       const handleOffline = () => {
-        updateDoc(docRef, { isOnline: false });
+        if (db) updateDoc(docRef, { isOnline: false });
       };
       
       window.addEventListener('beforeunload', handleOffline);
@@ -855,6 +857,8 @@ const AdminLogin = () => {
         setError('লগইন উইন্ডোটি বন্ধ করা হয়েছে।');
       } else if (err.code === 'auth/cancelled-popup-request') {
         // Ignore
+      } else if (err.code === 'auth/unauthorized-domain') {
+        setError('এই ডোমেইনটি Firebase-এ অনুমোদিত নয়।');
       } else {
         setError('লগইন করতে সমস্যা হয়েছে।');
       }
