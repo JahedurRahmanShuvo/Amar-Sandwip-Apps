@@ -322,7 +322,7 @@ const Dashboard = () => {
 };
 
 const TransportScreen = () => {
-  const [activeTab, setActiveTab] = useState('kumira');
+  const [activeTab, setActiveTab] = useState('kumira-gupta');
   const [transports, setTransports] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -339,28 +339,43 @@ const TransportScreen = () => {
   }, []);
 
   const filteredTransports = transports.filter(t => {
-    const matchRoute = activeTab === 'kumira' ? t.route === 'Kumira-Guptachhara' : t.route === 'Guptachhara-Sitakunda';
+    const matchRoute = t.route === activeTab;
     const matchSearch = t.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                         (t.tripNumber && t.tripNumber.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchRoute && matchSearch;
   });
 
+  const tabs = [
+    { id: 'kumira-gupta', label: 'কুমিরা - গুপ্তছড়া' },
+    { id: 'gupta-kumira', label: 'গুপ্তছড়া - কুমিরা' },
+    { id: 'bansbaria-gupta', label: 'বাঁশবাড়িয়া - গুপ্তছড়া' },
+    { id: 'gupta-bansbaria', label: 'গুপ্তছড়া - বাঁশবাড়িয়া' },
+  ];
+
   return (
     <div className="pb-20">
       <Header title="যাতায়াত" showBack />
-      <div className="flex bg-white border-b border-gray-200">
-        <button 
-          onClick={() => setActiveTab('kumira')}
-          className={cn("flex-1 py-3 font-semibold text-sm", activeTab === 'kumira' ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500")}
-        >
-          কুমিরা-গুপ্তছড়া
-        </button>
-        <button 
-          onClick={() => setActiveTab('gupta')}
-          className={cn("flex-1 py-3 font-semibold text-sm", activeTab === 'gupta' ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500")}
-        >
-          গুপ্তছড়া-সীতাকুণ্ড
-        </button>
+      <div className="bg-white border-b border-gray-200 sticky top-14 z-10">
+        <div className="flex overflow-x-auto scrollbar-hide">
+          {tabs.map((tab) => (
+            <button 
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                "flex-1 py-3 px-4 font-semibold text-xs whitespace-nowrap transition-colors relative",
+                activeTab === tab.id ? "text-blue-600" : "text-gray-500"
+              )}
+            >
+              {tab.label}
+              {activeTab === tab.id && (
+                <motion.div 
+                  layoutId="activeTab"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
+                />
+              )}
+            </button>
+          ))}
+        </div>
       </div>
       
       <div className="p-4">
@@ -1319,9 +1334,11 @@ const AdminTransport = () => {
             </label>
           </div>
           <input name="name" defaultValue={editing?.name} placeholder="জাহাজের নাম" className="w-full p-2 border rounded-lg" required />
-          <select name="route" defaultValue={editing?.route || 'Kumira-Guptachhara'} className="w-full p-2 border rounded-lg">
-            <option value="Kumira-Guptachhara">কুমিরা-গুপ্তছড়া</option>
-            <option value="Guptachhara-Sitakunda">গুপ্তছড়া-সীতাকুণ্ড</option>
+          <select name="route" defaultValue={editing?.route || 'kumira-gupta'} className="w-full p-2 border rounded-lg">
+            <option value="kumira-gupta">কুমিরা - গুপ্তছড়া</option>
+            <option value="gupta-kumira">গুপ্তছড়া - কুমিরা</option>
+            <option value="bansbaria-gupta">বাঁশবাড়িয়া - গুপ্তছড়া</option>
+            <option value="gupta-bansbaria">গুপ্তছড়া - বাঁশবাড়িয়া</option>
           </select>
           <div className="flex gap-2">
             <select name="timeOfDay" defaultValue={editing?.timeOfDay || 'সকাল'} className="flex-1 p-2 border rounded-lg">
@@ -1348,7 +1365,13 @@ const AdminTransport = () => {
             <img src={item.imageUrl || `https://picsum.photos/seed/${item.name}/100/100`} alt="" className="w-16 h-16 rounded-lg object-cover" />
             <div className="flex-1">
               <div className="font-bold">{item.name} {item.tripNumber && <span className="text-blue-600 font-normal">({item.tripNumber})</span>}</div>
-              <div className="text-xs text-gray-500">{item.route} | {item.timeOfDay} {item.time} | {item.price}৳</div>
+              <div className="text-xs text-gray-500">
+                {item.route === 'kumira-gupta' && 'কুমিরা - গুপ্তছড়া'}
+                {item.route === 'gupta-kumira' && 'গুপ্তছড়া - কুমিরা'}
+                {item.route === 'bansbaria-gupta' && 'বাঁশবাড়িয়া - গুপ্তছড়া'}
+                {item.route === 'gupta-bansbaria' && 'গুপ্তছড়া - বাঁশবাড়িয়া'}
+                {' | '}{item.timeOfDay} {item.time} | {item.price}৳
+              </div>
             </div>
             <div className="flex gap-2">
               <button onClick={() => {setEditing(item); setIsAdding(false); setSelectedImage(null); window.scrollTo(0,0);}} className="p-2 text-blue-600"><Edit2 className="w-4 h-4" /></button>
