@@ -12,28 +12,42 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    // Check if user is the admin (based on your email)
+    function isAdmin() {
+      return isAuthenticated() && 
+             (request.auth.token.email == "shuvojahedurrahman15@gmail.com" && request.auth.token.email_verified == true);
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
 
-    // Allow users to read and write only their own documents in any collection
-    // This is a generic rule that applies to any document that has a 'uid' field
-    // matching the authenticated user's ID, or where the document ID itself is the userId.
-    
+    // 1. User Profiles: Only the owner can read/write their own profile.
+    // Admin can also read profiles for management.
     match /users/{userId} {
-      allow read, write: if isOwner(userId);
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId) || isAdmin();
     }
 
-    // For other collections, we assume documents have a 'uid' field representing the owner
-    match /{collectionName}/{docId} {
-      allow read, write: if isAuthenticated() && 
-        (
-          (exists(resource.data.uid) && resource.data.uid == request.auth.uid) ||
-          (exists(request.resource.data.uid) && request.resource.data.uid == request.auth.uid)
-        );
+    // 2. Public Information: Everyone can read, but only Admin can write.
+    // This includes transport, market prices, emergency services, etc.
+    match /transports/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /marketPrices/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /emergencyServices/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /jobCirculars/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /appSettings/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /notifications/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /announcements/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /galleryItems/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /professionals/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /bloodDonors/{id} { allow read: if true; allow write: if isAdmin(); }
+
+    // 3. Admin Config: Only Admin can access
+    match /adminConfig/{id} {
+      allow read, write: if isAdmin();
     }
 
-    // Default deny
+    // Default deny for everything else
     match /{document=**} {
       allow read, write: if false;
     }
