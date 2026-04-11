@@ -448,8 +448,17 @@ const EmergencyScreen = () => {
         <Header title={selectedService.name} showBack />
         <div className="p-4">
           <div className="bg-white rounded-3xl p-6 shadow-sm flex flex-col items-center text-center">
-            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-              <User className="w-10 h-10 text-blue-600" />
+            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mb-4 overflow-hidden">
+              {selectedService.imageUrl ? (
+                <img 
+                  src={selectedService.imageUrl} 
+                  alt={selectedService.name} 
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <User className="w-10 h-10 text-blue-600" />
+              )}
             </div>
             <h2 className="text-xl font-bold mb-1">{selectedService.officerName || 'ভারপ্রাপ্ত কর্মকর্তা'}</h2>
             <p className="text-gray-500 mb-4 flex items-center gap-1">
@@ -485,8 +494,19 @@ const EmergencyScreen = () => {
             className="w-full bg-white p-4 rounded-2xl shadow-sm flex items-center justify-between hover:bg-gray-50 transition-colors"
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
+              <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center overflow-hidden">
+                {service.imageUrl ? (
+                  <img 
+                    src={service.imageUrl} 
+                    alt={service.name} 
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-blue-100 flex items-center justify-center">
+                    <Ship className="w-5 h-5 text-blue-600" />
+                  </div>
+                )}
               </div>
               <span className="font-bold text-gray-800">{service.name}</span>
             </div>
@@ -556,9 +576,14 @@ const MarketScreen = () => {
           )}
         </div>
 
-        <div className="mt-8 text-center text-gray-400 text-xs">
-          সর্বশেষ আপডেট সময়: ১০:০০ মান
-        </div>
+        {prices.length > 0 && (
+          <div className="mt-8 text-center text-gray-400 text-xs">
+            সর্বশেষ আপডেট: {
+              new Date(Math.max(...prices.map(p => new Date(p.updatedAt || p.createdAt || 0).getTime())))
+                .toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric' })
+            }
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1407,12 +1432,30 @@ const AdminEmergency = () => {
   const [items, setItems] = useState<any[]>([]);
   const [editing, setEditing] = useState<any>(null);
   const [isAdding, setIsAdding] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   useEffect(() => {
     return onSnapshot(collection(db, 'emergencyServices'), (snap) => {
       setItems(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
   }, []);
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setUploading(true);
+      try {
+        const base64 = await fileToBase64(file);
+        setSelectedImage(base64);
+      } catch (err) {
+        console.error(err);
+        alert('ছবি প্রসেস করতে সমস্যা হয়েছে।');
+      } finally {
+        setUploading(false);
+      }
+    }
+  };
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -1422,7 +1465,8 @@ const AdminEmergency = () => {
       category: data.get('category'),
       contactNumber: data.get('contactNumber'),
       location: data.get('location'),
-      officerName: data.get('officerName')
+      officerName: data.get('officerName'),
+      imageUrl: selectedImage || editing?.imageUrl || null
     };
 
     if (editing) {
@@ -1432,27 +1476,45 @@ const AdminEmergency = () => {
       await addDoc(collection(db, 'emergencyServices'), payload);
       setIsAdding(false);
     }
+    setSelectedImage(null);
   };
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-lg font-bold">জরুরি সেবা ব্যবস্থাপনা</h2>
-        <button onClick={() => setIsAdding(true)} className="bg-blue-600 text-white p-2 rounded-full">
+        <button onClick={() => {setIsAdding(true); setEditing(null); setSelectedImage(null);}} className="bg-blue-600 text-white p-2 rounded-full">
           <Plus className="w-5 h-5" />
         </button>
       </div>
 
       {(isAdding || editing) && (
         <form onSubmit={handleSave} className="bg-white p-4 rounded-2xl shadow-md space-y-3">
+          <div className="flex flex-col items-center gap-2 mb-2">
+            <div className="relative w-full h-32 bg-gray-100 rounded-xl overflow-hidden border-2 border-dashed border-gray-300 flex items-center justify-center">
+              {(selectedImage || editing?.imageUrl) ? (
+                <img src={selectedImage || editing?.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+              ) : (
+                <Camera className="w-8 h-8 text-gray-400" />
+              )}
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={handleImageChange}
+                className="absolute inset-0 opacity-0 cursor-pointer"
+                disabled={uploading}
+              />
+            </div>
+            <p className="text-xs text-gray-500">{uploading ? 'আপলোড হচ্ছে...' : 'ছবি পরিবর্তন করতে ক্লিক করুন'}</p>
+          </div>
           <input name="name" defaultValue={editing?.name} placeholder="সেবার নাম" className="w-full p-2 border rounded-lg" required />
           <input name="category" defaultValue={editing?.category} placeholder="ক্যাটাগরি" className="w-full p-2 border rounded-lg" required />
           <input name="contactNumber" defaultValue={editing?.contactNumber} placeholder="ফোন নম্বর" className="w-full p-2 border rounded-lg" required />
           <input name="location" defaultValue={editing?.location} placeholder="লোকেশন" className="w-full p-2 border rounded-lg" />
           <input name="officerName" defaultValue={editing?.officerName} placeholder="ভারপ্রাপ্ত কর্মকর্তা" className="w-full p-2 border rounded-lg" />
           <div className="flex gap-2">
-            <button type="submit" className="flex-1 bg-green-600 text-white py-2 rounded-lg">সেভ করুন</button>
-            <button type="button" onClick={() => {setEditing(null); setIsAdding(false)}} className="flex-1 bg-gray-200 py-2 rounded-lg">বাতিল</button>
+            <button type="submit" className="flex-1 bg-green-600 text-white py-2 rounded-lg" disabled={uploading}>সেভ করুন</button>
+            <button type="button" onClick={() => {setEditing(null); setIsAdding(false); setSelectedImage(null);}} className="flex-1 bg-gray-200 py-2 rounded-lg">বাতিল</button>
           </div>
         </form>
       )}
@@ -1460,12 +1522,21 @@ const AdminEmergency = () => {
       <div className="space-y-2">
         {items.map(item => (
           <div key={item.id} className="bg-white p-4 rounded-xl shadow-sm flex justify-between items-center">
-            <div>
-              <div className="font-bold">{item.name}</div>
-              <div className="text-xs text-gray-500">{item.contactNumber}</div>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
+                {item.imageUrl ? (
+                  <img src={item.imageUrl} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <Camera className="w-4 h-4 text-gray-400" />
+                )}
+              </div>
+              <div>
+                <div className="font-bold">{item.name}</div>
+                <div className="text-xs text-gray-500">{item.contactNumber}</div>
+              </div>
             </div>
             <div className="flex gap-2">
-              <button onClick={() => setEditing(item)} className="p-2 text-blue-600"><Edit2 className="w-4 h-4" /></button>
+              <button onClick={() => {setEditing(item); setSelectedImage(null);}} className="p-2 text-blue-600"><Edit2 className="w-4 h-4" /></button>
               <button onClick={() => deleteDoc(doc(db, 'emergencyServices', item.id))} className="p-2 text-red-500"><Trash2 className="w-4 h-4" /></button>
             </div>
           </div>
