@@ -158,14 +158,14 @@ const Header = ({ title, showBack = false }: { title: string; showBack?: boolean
           </button>
         )}
         {!showBack && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 h-10">
             <img 
               src="https://image2url.com/r2/default/images/1775916775129-bb9cf428-0713-4075-99cc-aea0d0b69bc5.png" 
               alt="Logo" 
               className="h-10 w-auto object-contain"
               referrerPolicy="no-referrer"
             />
-            <h1 className="text-xl font-bold text-gray-900 leading-none">{title}</h1>
+            <h1 className="text-xl font-bold text-gray-900 mt-0.5">{title}</h1>
           </div>
         )}
         {showBack && <h1 className="text-xl font-bold text-gray-900">{title}</h1>}
