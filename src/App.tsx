@@ -165,7 +165,7 @@ const Header = ({ title, showBack = false }: { title: string; showBack?: boolean
               className="h-10 w-auto object-contain"
               referrerPolicy="no-referrer"
             />
-            <h1 className="text-xl font-bold text-gray-900">{title}</h1>
+            <h1 className="text-xl font-bold text-gray-900 leading-none">{title}</h1>
           </div>
         )}
         {showBack && <h1 className="text-xl font-bold text-gray-900">{title}</h1>}
