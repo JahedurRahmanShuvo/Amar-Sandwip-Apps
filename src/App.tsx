@@ -2114,12 +2114,14 @@ const AdminPasswordChangeModal = ({ onClose }: { onClose: () => void }) => {
 const AdminNotifications = () => {
   const [title, setTitle] = useState('');
   const [msg, setMsg] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
   const [isPopup, setIsPopup] = useState(false);
   const [sending, setSending] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingType, setEditingType] = useState<'notif' | 'announcement' | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     const qNotif = query(collection(db, 'notifications'), orderBy('createdAt', 'desc'));
@@ -2145,6 +2147,7 @@ const AdminNotifications = () => {
       const payload = {
         title,
         message: msg,
+        imageUrl: imageUrl || null,
         updatedAt: new Date().toISOString()
       };
 
@@ -2176,6 +2179,7 @@ const AdminNotifications = () => {
   const handleEdit = (item: any, type: 'notif' | 'announcement') => {
     setTitle(item.title);
     setMsg(item.message);
+    setImageUrl(item.imageUrl || '');
     setEditingId(item.id);
     setEditingType(type);
     setIsPopup(type === 'announcement');
@@ -2197,7 +2201,23 @@ const AdminNotifications = () => {
     setEditingType(null);
     setTitle('');
     setMsg('');
+    setImageUrl('');
     setIsPopup(false);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const base64 = await fileToBase64(file);
+      setImageUrl(base64);
+    } catch (err) {
+      console.error(err);
+      alert('ছবি আপলোড করতে সমস্যা হয়েছে');
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -2226,6 +2246,29 @@ const AdminNotifications = () => {
           className="w-full p-4 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
           rows={5}
         />
+
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">ছবি (ঐচ্ছিক)</label>
+          <div className="flex items-center gap-4">
+            <label className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl p-4 hover:border-blue-500 transition-colors cursor-pointer bg-gray-50">
+              <Camera className="w-8 h-8 text-gray-400 mb-2" />
+              <span className="text-xs text-gray-500">{uploading ? 'আপলোড হচ্ছে...' : 'ছবি নির্বাচন করুন'}</span>
+              <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploading} />
+            </label>
+            {imageUrl && (
+              <div className="relative w-24 h-24 rounded-xl overflow-hidden border">
+                <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                <button 
+                  onClick={() => setImageUrl('')}
+                  className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full shadow-md"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
         {!editingId && (
           <label className="flex items-center gap-2 cursor-pointer">
             <input 
@@ -2256,9 +2299,16 @@ const AdminNotifications = () => {
           {announcements.map(item => (
             <div key={item.id} className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-orange-500">
               <div className="flex justify-between items-start">
-                <div>
-                  <h5 className="font-bold text-sm">{item.title}</h5>
-                  <p className="text-xs text-gray-500 line-clamp-2">{item.message}</p>
+                <div className="flex gap-3">
+                  {item.imageUrl && (
+                    <div className="w-12 h-12 rounded-lg overflow-hidden border flex-shrink-0">
+                      <img src={item.imageUrl} alt="" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  <div>
+                    <h5 className="font-bold text-sm">{item.title}</h5>
+                    <p className="text-xs text-gray-500 line-clamp-2">{item.message}</p>
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   <button onClick={() => handleEdit(item, 'announcement')} className="p-2 text-blue-600 bg-blue-50 rounded-lg">
@@ -2279,9 +2329,16 @@ const AdminNotifications = () => {
           {notifications.map(item => (
             <div key={item.id} className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-500">
               <div className="flex justify-between items-start">
-                <div>
-                  <h5 className="font-bold text-sm">{item.title}</h5>
-                  <p className="text-xs text-gray-500 line-clamp-2">{item.message}</p>
+                <div className="flex gap-3">
+                  {item.imageUrl && (
+                    <div className="w-12 h-12 rounded-lg overflow-hidden border flex-shrink-0">
+                      <img src={item.imageUrl} alt="" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  <div>
+                    <h5 className="font-bold text-sm">{item.title}</h5>
+                    <p className="text-xs text-gray-500 line-clamp-2">{item.message}</p>
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   <button onClick={() => handleEdit(item, 'notif')} className="p-2 text-blue-600 bg-blue-50 rounded-lg">
@@ -2334,7 +2391,17 @@ const AnnouncementPopup = () => {
           <Bell className="w-8 h-8 text-blue-600" />
         </div>
         <h2 className="text-xl font-bold text-gray-900 mb-2">{announcement.title}</h2>
-        <p className="text-gray-600 mb-6 leading-relaxed">{announcement.message}</p>
+        {announcement.imageUrl && (
+          <div className="mb-4 rounded-2xl overflow-hidden">
+            <img 
+              src={announcement.imageUrl} 
+              alt={announcement.title} 
+              className="w-full h-auto max-h-48 object-cover"
+              referrerPolicy="no-referrer"
+            />
+          </div>
+        )}
+        <p className="text-gray-600 mb-6 leading-relaxed whitespace-pre-wrap">{announcement.message}</p>
         <button 
           onClick={() => setAnnouncement(null)}
           className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-100"
@@ -2363,7 +2430,17 @@ const NotificationsScreen = () => {
         {notifications.length > 0 ? notifications.map((n) => (
           <div key={n.id} className="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-blue-500">
             <h3 className="font-bold text-gray-900 mb-1">{n.title}</h3>
-            <p className="text-gray-600 text-sm mb-2">{n.message}</p>
+            {n.imageUrl && (
+              <div className="mb-3 rounded-xl overflow-hidden">
+                <img 
+                  src={n.imageUrl} 
+                  alt={n.title} 
+                  className="w-full h-auto max-h-60 object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+            )}
+            <p className="text-gray-600 text-sm mb-2 whitespace-pre-wrap">{n.message}</p>
             <div className="text-[10px] text-gray-400 flex justify-between">
               <span>{new Date(n.createdAt).toLocaleString('bn-BD')}</span>
               {n.updatedAt && <span className="italic text-blue-400">আপডেট করা হয়েছে</span>}
