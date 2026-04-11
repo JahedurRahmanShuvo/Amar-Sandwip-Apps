@@ -492,6 +492,7 @@ const EmergencyScreen = () => {
 
 const MarketScreen = () => {
   const [prices, setPrices] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     if (!db) return;
@@ -505,6 +506,10 @@ const MarketScreen = () => {
     return unsubscribe;
   }, []);
 
+  const filteredPrices = prices.filter(item => 
+    item.productName.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="pb-20">
       <Header title="বাজার দর" showBack />
@@ -513,13 +518,15 @@ const MarketScreen = () => {
           <input 
             type="text" 
             placeholder="পণ্যের নাম খুঁজুন" 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-white border-none rounded-2xl py-3 pl-12 pr-4 shadow-sm outline-none"
           />
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          {prices.map((item) => (
+          {filteredPrices.length > 0 ? filteredPrices.map((item) => (
             <div key={item.id} className="bg-white rounded-2xl overflow-hidden shadow-sm">
               <img 
                 src={item.imageUrl || `https://picsum.photos/seed/${item.productName}/200/150`} 
@@ -534,7 +541,11 @@ const MarketScreen = () => {
                 </div>
               </div>
             </div>
-          ))}
+          )) : (
+            <div className="col-span-2 text-center py-10 text-gray-500">
+              কোন পণ্য পাওয়া যায়নি
+            </div>
+          )}
         </div>
 
         <div className="mt-8 text-center text-gray-400 text-xs">
