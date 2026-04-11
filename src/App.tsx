@@ -158,11 +158,14 @@ const Header = ({ title, showBack = false }: { title: string; showBack?: boolean
           </button>
         )}
         {!showBack && (
-          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-            <Ship className="w-5 h-5 text-white" />
-          </div>
+          <img 
+            src="https://image2url.com/r2/default/images/1775916775129-bb9cf428-0713-4075-99cc-aea0d0b69bc5.png" 
+            alt="Logo" 
+            className="h-8 w-auto object-contain"
+            referrerPolicy="no-referrer"
+          />
         )}
-        <h1 className="text-xl font-bold text-gray-900">{title}</h1>
+        {showBack && <h1 className="text-xl font-bold text-gray-900">{title}</h1>}
       </div>
       <div className="flex items-center gap-3">
         <button onClick={handleNotifClick} className="relative p-1">
@@ -256,10 +259,12 @@ const LoginScreen = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-[#E0F2F7]">
-      <div className="w-24 h-24 bg-blue-600 rounded-full flex items-center justify-center mb-6 shadow-lg">
-        <Ship className="w-12 h-12 text-white" />
-      </div>
-      <h1 className="text-3xl font-bold text-gray-900 mb-2">আমার সন্দ্বীপ</h1>
+      <img 
+        src="https://image2url.com/r2/default/images/1775916775129-bb9cf428-0713-4075-99cc-aea0d0b69bc5.png" 
+        alt="Logo" 
+        className="w-48 h-auto object-contain mb-6"
+        referrerPolicy="no-referrer"
+      />
       <p className="text-gray-600 mb-8 text-center">সন্দ্বীপবাসীর জন্য একটি সমন্বিত ডিজিটাল প্ল্যাটফর্ম</p>
       
       {error && <div className="mb-4 p-3 bg-red-100 text-red-600 text-sm rounded-xl font-medium text-center max-w-xs">{error}</div>}
