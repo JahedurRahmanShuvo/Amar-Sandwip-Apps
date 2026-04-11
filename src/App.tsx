@@ -162,7 +162,7 @@ const Header = ({ title, showBack = false }: { title: string; showBack?: boolean
             <img 
               src="https://image2url.com/r2/default/images/1775916775129-bb9cf428-0713-4075-99cc-aea0d0b69bc5.png" 
               alt="Logo" 
-              className="h-8 w-auto object-contain"
+              className="h-10 w-auto object-contain"
               referrerPolicy="no-referrer"
             />
             <h1 className="text-xl font-bold text-gray-900">{title}</h1>
