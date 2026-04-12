@@ -166,12 +166,22 @@ const Header = ({ title, showBack = false }: { title: string; showBack?: boolean
         )}
         {!showBack && (
           <div className="flex items-center gap-2 h-10">
-            <img 
-              src="https://image2url.com/r2/default/images/1775916775129-bb9cf428-0713-4075-99cc-aea0d0b69bc5.png" 
-              alt="Logo" 
-              className="h-10 w-auto object-contain"
-              referrerPolicy="no-referrer"
-            />
+            <div className="h-10 w-10 flex items-center justify-center overflow-hidden rounded-lg">
+              <img 
+                src="https://i.postimg.cc/8zyVrPC3/1775916775129-bb9cf428-0713-4075-99cc-aea0d0b69bc5.png" 
+                alt="Logo" 
+                className="h-full w-auto object-contain"
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  // Fallback if image fails
+                  e.currentTarget.style.display = 'none';
+                  const parent = e.currentTarget.parentElement;
+                  if (parent) {
+                    parent.innerHTML = '<div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">S</div>';
+                  }
+                }}
+              />
+            </div>
             <h1 className="text-xl font-bold text-gray-900 mt-0.5">{title}</h1>
           </div>
         )}
