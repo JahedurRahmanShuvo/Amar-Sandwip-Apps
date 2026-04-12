@@ -110,6 +110,13 @@ const Header = ({ title, showBack = false }: { title: string; showBack?: boolean
   const [user] = useAuthState(auth);
   const [profile, setProfile] = useState<any>(null);
   const [hasNewNotif, setHasNewNotif] = useState(false);
+  const [appSettings, setAppSettings] = useState<any>(null);
+
+  useEffect(() => {
+    onSnapshot(doc(db, 'appSettings', 'general'), (snap) => {
+      if (snap.exists()) setAppSettings(snap.data());
+    });
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -2968,6 +2975,15 @@ const JobsScreen = () => {
 export default function App() {
   const [user, loading] = useAuthState(auth);
   const [profile, setProfile] = useState<any>(null);
+  const [appSettings, setAppSettings] = useState<any>(null);
+
+  useEffect(() => {
+    return onSnapshot(doc(db, 'appSettings', 'general'), (snap) => {
+      if (snap.exists()) {
+        setAppSettings(snap.data());
+      }
+    });
+  }, []);
 
   useEffect(() => {
     if (user) {
