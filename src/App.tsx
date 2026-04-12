@@ -280,7 +280,7 @@ const LoginScreen = () => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-[#E0F2F7]">
       <img 
-        src="https://image2url.com/r2/default/images/1775916775129-bb9cf428-0713-4075-99cc-aea0d0b69bc5.png" 
+        src="https://i.postimg.cc/8zyVrPC3/1775916775129-bb9cf428-0713-4075-99cc-aea0d0b69bc5.png" 
         alt="Logo" 
         className="w-48 h-auto object-contain mb-6"
         referrerPolicy="no-referrer"
