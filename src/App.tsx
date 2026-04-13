@@ -1741,7 +1741,15 @@ const AdminUsers = () => {
     ? users.filter(u => u.union === filterUnion)
     : users;
 
-  const onlineCount = users.filter(u => u.isOnline).length;
+  const isUserOnline = (u: any) => {
+    if (!u.isOnline || !u.lastActive) return false;
+    const lastActive = new Date(u.lastActive).getTime();
+    const now = new Date().getTime();
+    // Consider online if active in last 90 seconds
+    return (now - lastActive) < 90000;
+  };
+
+  const onlineCount = users.filter(u => isUserOnline(u)).length;
 
   const handleDelete = async (userId: string) => {
     if (window.confirm('আপনি কি নিশ্চিত যে এই ইউজার প্রোফাইলটি ডিলিট করতে চান?')) {
@@ -1810,7 +1818,7 @@ const AdminUsers = () => {
                 className="relative focus:outline-none"
               >
                 <img src={u.photoURL || `https://ui-avatars.com/api/?name=${u.displayName}&background=random`} alt="" className="w-10 h-10 rounded-full object-cover border border-gray-100" />
-                {u.isOnline && <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />}
+                {isUserOnline(u) && <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />}
               </button>
               <div onClick={() => setSelectedUser(u)} className="cursor-pointer">
                 <div className="font-bold text-sm">{u.displayName}</div>
@@ -1859,7 +1867,7 @@ const AdminUsers = () => {
                   {/* Online Indicator */}
                   <div className={cn(
                     "absolute bottom-1 right-1 w-6 h-6 rounded-full border-4 border-white shadow-sm",
-                    selectedUser.isOnline ? "bg-[#28A745]" : "bg-gray-300"
+                    isUserOnline(selectedUser) ? "bg-[#28A745]" : "bg-gray-300"
                   )} />
                 </div>
                 
@@ -2991,6 +2999,13 @@ export default function App() {
       // Set online initially
       setOnlineStatus(true);
 
+      // Heartbeat every 20 seconds
+      const heartbeat = setInterval(() => {
+        if (document.visibilityState === 'visible') {
+          setOnlineStatus(true);
+        }
+      }, 20000);
+
       // Listen for profile changes
       const unsubscribeProfile = onSnapshot(docRef, (snap) => {
         if (snap.exists()) {
@@ -3014,10 +3029,12 @@ export default function App() {
       document.addEventListener('visibilitychange', handleVisibilityChange);
 
       return () => {
+        clearInterval(heartbeat);
         window.removeEventListener('beforeunload', handleOffline);
         document.removeEventListener('visibilitychange', handleVisibilityChange);
         unsubscribeProfile();
-        handleOffline();
+        // Mark offline immediately on cleanup
+        setOnlineStatus(false);
       };
     } else {
       setProfile(null);

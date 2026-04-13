@@ -84,10 +84,21 @@ export const signInWithGoogle = async () => {
           union: '',
           upazila: 'Sandwip',
           district: 'Chittagong',
-          role: user.email === 'shuvojahedurrahman15@gmail.com' ? 'admin' : 'user'
+          role: user.email === 'shuvojahedurrahman15@gmail.com' ? 'admin' : 'user',
+          isOnline: true,
+          lastActive: new Date().toISOString()
         });
       } catch (error) {
         handleFirestoreError(error, OperationType.CREATE, `users/${user.uid}`);
+      }
+    } else {
+      try {
+        await updateDoc(userDocRef, {
+          isOnline: true,
+          lastActive: new Date().toISOString()
+        });
+      } catch (error) {
+        handleFirestoreError(error, OperationType.UPDATE, `users/${user.uid}`);
       }
     }
     return user;
@@ -107,7 +118,16 @@ export const adminLogin = async (email: string, pass: string) => {
   }
 };
 
-export const logout = () => signOut(auth);
+export const logout = async () => {
+  if (auth.currentUser) {
+    try {
+      await updateDoc(doc(db, 'users', auth.currentUser.uid), { isOnline: false });
+    } catch (error) {
+      console.error('Error updating online status during logout:', error);
+    }
+  }
+  return signOut(auth);
+};
 
 // Test connection
 async function testConnection() {
