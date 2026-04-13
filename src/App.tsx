@@ -2463,9 +2463,6 @@ const AnnouncementPopup = () => {
         >
           <X className="w-6 h-6" />
         </button>
-        <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mb-4">
-          <Bell className="w-8 h-8 text-blue-600" />
-        </div>
         <h2 className="text-xl font-bold text-gray-900 mb-2">{announcement.title}</h2>
         {announcement.imageUrl && (
           <div className="mb-4 rounded-2xl overflow-hidden">
