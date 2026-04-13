@@ -2979,11 +2979,17 @@ export default function App() {
     if (user && db) {
       const docRef = doc(db, 'users', user.uid);
       
-      // Update online status
-      updateDoc(docRef, { 
-        isOnline: true, 
-        lastActive: new Date().toISOString() 
-      });
+      const setOnlineStatus = (status: boolean) => {
+        if (db && user) {
+          updateDoc(docRef, { 
+            isOnline: status, 
+            lastActive: new Date().toISOString() 
+          }).catch(console.error);
+        }
+      };
+
+      // Set online initially
+      setOnlineStatus(true);
 
       // Listen for profile changes
       const unsubscribeProfile = onSnapshot(docRef, (snap) => {
@@ -2992,13 +2998,24 @@ export default function App() {
         }
       });
       
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+          setOnlineStatus(true);
+        } else {
+          setOnlineStatus(false);
+        }
+      };
+
       const handleOffline = () => {
-        if (db) updateDoc(docRef, { isOnline: false });
+        setOnlineStatus(false);
       };
       
       window.addEventListener('beforeunload', handleOffline);
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+
       return () => {
         window.removeEventListener('beforeunload', handleOffline);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
         unsubscribeProfile();
         handleOffline();
       };
