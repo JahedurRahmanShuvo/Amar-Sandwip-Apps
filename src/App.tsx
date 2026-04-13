@@ -659,26 +659,6 @@ const ProfileScreen = () => {
     }
   };
 
-  useEffect(() => {
-    if (user && db) {
-      const docRef = doc(db, 'users', user.uid);
-      updateDoc(docRef, { 
-        isOnline: true, 
-        lastActive: new Date().toISOString() 
-      });
-      
-      const handleOffline = () => {
-        if (db) updateDoc(docRef, { isOnline: false });
-      };
-      
-      window.addEventListener('beforeunload', handleOffline);
-      return () => {
-        window.removeEventListener('beforeunload', handleOffline);
-        handleOffline();
-      };
-    }
-  }, [user]);
-
   if (!profile) return null;
 
   return (
@@ -2996,13 +2976,32 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (user) {
+    if (user && db) {
       const docRef = doc(db, 'users', user.uid);
-      return onSnapshot(docRef, (snap) => {
+      
+      // Update online status
+      updateDoc(docRef, { 
+        isOnline: true, 
+        lastActive: new Date().toISOString() 
+      });
+
+      // Listen for profile changes
+      const unsubscribeProfile = onSnapshot(docRef, (snap) => {
         if (snap.exists()) {
           setProfile(snap.data());
         }
       });
+      
+      const handleOffline = () => {
+        if (db) updateDoc(docRef, { isOnline: false });
+      };
+      
+      window.addEventListener('beforeunload', handleOffline);
+      return () => {
+        window.removeEventListener('beforeunload', handleOffline);
+        unsubscribeProfile();
+        handleOffline();
+      };
     } else {
       setProfile(null);
     }
